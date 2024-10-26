@@ -1,0 +1,344 @@
+#include <iostream>
+#include <Windows.h> // для перекладу консолі
+#include <vector>
+#include <string>
+#include <fstream>
+
+using namespace std;
+
+// нижче структури для:
+// зберігання інформації про користувача
+struct User {
+    int id;
+    string name;
+    string password;
+
+    User(int id, string name, string password)
+        : id(id), name(name), password(password) {}
+};
+
+// зберігання інформації про домашні завдання
+struct Homework {
+    string name;
+    string description;
+    bool submitted;
+
+    Homework(string name, string description)
+        : name(name), description(description), submitted(false) {}
+};
+
+// зберігання інформації про розклад
+struct Schedule {
+    string subject;
+    string day;
+    string time;
+
+    Schedule(string subject, string day, string time)
+        : subject(subject), day(day), time(time) {}
+};
+
+class Mystat {
+private:
+    vector<User> users; // користувачі
+    vector<Homework> homeworkList; // домашка
+    vector<Schedule> scheduleList; // розклад
+    int userIdCounter = 1;
+
+    // назви файлів для зберігання:
+    const string userFileName = "users.txt";
+    const string homeworkFileName = "homework.txt";
+    const string scheduleFileName = "schedule.txt";
+
+public:
+
+    Mystat() { // конструктор
+        loadData(); // завантаження данних з файлу
+    }
+
+    ~Mystat() { // деструктор
+        saveData(); // збереження данних у файл
+    }
+
+    // реєстрація нового користувача
+    void registerUser() {
+        string name, password;
+        cout << "Введіть ім'я користувача: ";
+        cin >> name;
+        cout << "Введіть пароль: ";
+        cin >> password;
+
+        // додавання його у список
+        users.push_back(User(userIdCounter++, name, password));
+        cout << "Користувач " << name << " зареєстрований." << endl;
+    }
+    // вхід користувача 
+    User* loginUser() {
+        string name, password;
+        cout << "Введіть ім'я користувача: ";
+        cin >> name;
+        cout << "Введіть пароль: ";
+        cin >> password;
+
+        // перевірка його наявності
+        for (auto& user : users) {
+            if (user.name == name && user.password == password) {
+                cout << "Вхід виконан для " << name << ".\n";
+                return &user;
+            }
+        }
+        cout << "Неправильні логін і пароль." << endl;
+        return 0;
+    }
+
+    // я попутав слово з authorization такшо це авторизація
+    User* Authentication() {
+        int choice;
+        User* currentUser = 0;
+
+        while (true) {
+            cout << "1. Реєстрація\n2. Логін\n0. Вийти\n";
+            cin >> choice;
+
+            if (choice == 1) {
+                registerUser(); // реєстрація
+            }
+            else if (choice == 2) {
+                currentUser = loginUser(); // вхід
+                if (currentUser) break;
+            }
+            else if (choice == 0) {
+                cout << "Вихід з програми.\n";
+                return 0; // вихід з программи
+            }
+            else {
+                cout << "Невірний вибір. Спробуйте ще раз.\n";
+            }
+        }
+        return currentUser;
+    }
+
+    // додавання домашки 
+    void addHomework() {
+        string name, description;
+        cout << "Назва домашнього завдання: ";
+        cin.ignore();
+        getline(cin, name);
+        cout << "Опис: ";
+        getline(cin, description);
+        homeworkList.push_back(Homework(name, description));
+        cout << "Домашнє завдання додано." << endl;
+    }
+
+    // здача домашки 
+    void submitHomework() {
+        int index;
+        viewHomework(); // показує всі домашки
+        cout << "Виберіть номер домашнього завдання для здачі: ";
+        cin >> index;
+        if (index > 0 && index <= homeworkList.size()) {
+            homeworkList[index - 1].submitted = true;
+            cout << "Домашнє завдання здано." << endl;
+        }
+        else {
+            cout << "Неправильний вибір." << endl;
+        }
+    }
+
+    // показує всі домашки
+    void viewHomework() {
+        if (homeworkList.empty()) {
+            cout << "Домашніх завдань немає." << endl;
+            return;
+        }
+        cout << "Список домашніх завдань:\n";
+        for (size_t i = 0; i < homeworkList.size(); ++i) {
+            cout << i + 1 << ". " << homeworkList[i].name
+                << " (" << (homeworkList[i].submitted ? "Здано" : "Не здано") << ")\n";
+        }
+    }
+
+    // додає заняття у розклад  
+    void addLesson() {
+        string subject, day, time;
+        cout << "Назва предмету: ";
+        cin.ignore();
+        getline(cin, subject);
+        cout << "День: ";
+        getline(cin, day);
+        cout << "Час: ";
+        getline(cin, time);
+        scheduleList.push_back(Schedule(subject, day, time));
+        cout << "Заняття додано." << endl;
+    }
+
+    // видаляє заняття з розкладу
+    void removeLesson() {
+        int index;
+        viewSchedule();
+        cout << "Виберіть номер заннятя для видалення: ";
+        cin >> index;
+        if (index > 0 && index <= scheduleList.size()) {
+            scheduleList.erase(scheduleList.begin() + index - 1);
+            cout << "Заняття видалено." << endl;
+        }
+        else {
+            cout << "Неправильний вибір." << endl;
+        }
+    }
+
+    // показує розклад
+    void viewSchedule() {
+        if (scheduleList.empty()) {
+            cout << "Розкладу немає." << endl;
+            return;
+        }
+        cout << "Список заннять:\n";
+        for (size_t i = 0; i < scheduleList.size(); ++i) {
+            cout << i + 1 << ". " << scheduleList[i].subject
+                << " (" << scheduleList[i].day << ", " << scheduleList[i].time << ")\n";
+        }
+    }
+    // головна менюшка
+    void mainMenu(User* currentUser) {
+        int choice;
+        while (true) {
+            cout << "\n1. Домашні завдання\n2. Розклад\n0. Вийти\n";
+            cout << "Оберіть опцію: ";
+            cin >> choice;
+
+            switch (choice) {
+            case 1:
+                homeworkMenu(); // менюшка з домашками
+                break;
+            case 2:
+                scheduleMenu(); // менюшка з розкладом занятть
+                break;
+            case 0:
+                cout << "Вихід з програми." << endl;
+                return;
+            default:
+                cout << "Невірний вибір. Спробуйте ще раз." << endl;
+            }
+        }
+    }
+    // меню домашніх завдань
+    void homeworkMenu() {
+        int choice;
+        while (true) {
+            cout << "\n1. Додати домашнє завдання\n2. Здати домашнє завдання\n3. Переглянути домашні завдання\n0. Назад\n";
+            cout << "Оберіть опцію: ";
+            cin >> choice;
+
+            switch (choice) {
+            case 1:
+                addHomework(); // додавання домашки
+                break;
+            case 2:
+                submitHomework(); // здача домашки
+                break;
+            case 3:
+                viewHomework(); // прегляд домашки
+                break;
+            case 0:
+                return; // повернення до головної домашки
+            default:
+                cout << "Невірний вибір. Спробуйте ще раз." << endl;
+            }
+        }
+    }
+    // меню розкладу занятть
+    void scheduleMenu() {
+        int choice;
+        while (true) {
+            cout << "\n1. Додати заняття\n2. Видалити заняття\n3. Переглянути розклад\n0. Назад\n";
+            cout << "Оберіть опцію: ";
+            cin >> choice;
+
+            switch (choice) {
+            case 1:
+                addLesson(); // додавання заняття
+                break;
+            case 2:
+                removeLesson(); // видалення заняття
+                break;
+            case 3:
+                viewSchedule(); // перегляд розкладу
+                break;
+            case 0:
+                return; // повернення до головної менюшки
+            default:
+                cout << "Невірний вибір. Спробуйте ще раз." << endl;
+            }
+        }
+    }
+    // функція для збереження даних у файли (P.S. я тупий сильно для того щоб для окремого користувача зберігати данні тому буде так)
+    void saveData() {
+        ofstream userFile(userFileName);
+        ofstream homeworkFile(homeworkFileName);
+        ofstream scheduleFile(scheduleFileName);
+
+        // збереження користувачів
+        for (const auto& user : users) {
+            userFile << user.id << ' ' << user.name << ' ' << user.password << '\n';
+        }
+
+        // збереження домашніх завдань
+        for (const auto& homework : homeworkList) {
+            homeworkFile << homework.name << '\n' << homework.description << '\n' << homework.submitted << '\n';
+        }
+
+        // збереження розкладу
+        for (const auto& schedule : scheduleList) {
+            scheduleFile << schedule.subject << '\n' << schedule.day << '\n' << schedule.time << '\n';
+        }
+    }
+
+    // функція для завантаження даних із файлів
+    void loadData() {
+        ifstream userFile(userFileName);
+        ifstream homeworkFile(homeworkFileName);
+        ifstream scheduleFile(scheduleFileName);
+
+        // завантаження користувачів
+        int id;
+        string name, password;
+        while (userFile >> id >> name >> password) {
+            users.push_back(User(id, name, password));
+            userIdCounter = max(userIdCounter, id + 1); // Оновлення лічильника ID
+        }
+
+        // завантаження домашніх завдань
+        string homeworkName, description;
+        bool submitted;
+        while (getline(homeworkFile, homeworkName)) {
+            getline(homeworkFile, description);
+            homeworkFile >> submitted;
+            homeworkFile.ignore();
+            homeworkList.push_back(Homework(homeworkName, description));
+            homeworkList.back().submitted = submitted;
+        }
+
+        // завантаження розкладу
+        string subject, day, time;
+        while (getline(scheduleFile, subject)) {
+            getline(scheduleFile, day);
+            getline(scheduleFile, time);
+            scheduleList.push_back(Schedule(subject, day, time));
+        }
+    }
+};
+
+
+int main() {
+    SetConsoleCP(1251); // для перекладу консолі
+    SetConsoleOutputCP(1251);
+    Mystat system; // запуск
+    User* currentUser = system.Authentication();
+
+    // заупскає головне меню коли ви авторизовані
+    if (currentUser) {
+        system.mainMenu(currentUser);
+    }
+
+    return 0;
+}
